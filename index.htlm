@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUREA | SOKANY 2L Culinary Processor</title>
+
+    <!-- Google Fonts & CDN Dependencies -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        :root {
+            --bg-primary: #050507;
+            --bg-secondary: #0c0d12;
+            --accent-cyan: #00f0ff;
+            --accent-purple: #7000ff;
+            --accent-silver: #e2e8f0;
+            --glass-bg: rgba(255, 255, 255, 0.02);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --font-head: 'Syne', sans-serif;
+            --font-body: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            overflow-x: hidden;
+            cursor: default;
+            selection-background-color: var(--accent-cyan);
+        }
+
+        /* Canvas 3D Viewport */
+        #webgl-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Custom Cursor */
+        .cursor-dot, .cursor-blur {
+            pointer-events: none;
+            position: fixed;
+            border-radius: 50%;
+            transition: transform 0.15s ease-out;
+            z-index: 9999;
+        }
+        .cursor-dot { width: 8px; height: 8px; background: var(--accent-cyan); }
+        .cursor-blur {
+            width: 40px; height: 40px;
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            background: rgba(0, 240, 255, 0.05);
+            backdrop-filter: blur(2px);
+            margin-left: -16px; margin-top: -16px;
+        }
+
+        /* Content Scaffolding */
+        main { position: relative; z-index: 2; }
+        
+        section {
+            min-height: 100vh;
+            padding: 8rem 2rem 4rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Navigation Header */
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 2rem 4rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(5, 5, 7, 0.6);
+        }
+
+        .brand-logo {
+            font-family: var(--font-head);
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            background: linear-gradient(135deg, #fff 0%, var(--text-muted) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Hero Layout */
+        .hero {
+            align-items: flex-start;
+            text-align: left;
+            width: 100%;
+            min-height: 100vh;
+            padding-top: 12rem;
+        }
+
+        .pill-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            border-radius: 50px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--accent-cyan);
+            margin-bottom: 2rem;
+        }
+
+        .hero h1 {
+            font-family: var(--font-head);
+            font-size: clamp(3rem, 7vw, 6rem);
+            line-height: 0.95;
+            letter-spacing: -0.03em;
+            margin-bottom: 2rem;
+            max-width: 800px;
+            background: linear-gradient(180deg, #FFFFFF 0%, #64748B 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 520px;
+            line-height: 1.6;
+            margin-bottom: 3rem;
+            font-weight: 300;
+        }
+
+        /* CTA High-Conversion Buttons */
+        .btn-primary {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 22px 48px;
+            background: #ffffff;
+            color: #000000;
+            font-weight: 700;
+            font-size: 1rem;
+            border-radius: 100px;
+            text-decoration: none;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 20px 40px rgba(255, 255, 255, 0.1);
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 30px 60px rgba(0, 240, 255, 0.25);
+            background: var(--accent-cyan);
+        }
+
+        /* 3D Glass Cards */
+        .grid-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            width: 100%;
+            margin-top: 4rem;
+        }
+
+        .card-3d {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 28px;
+            padding: 3rem 2.5rem;
+            backdrop-filter: blur(20px);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            transition: border-color 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        .card-3d:hover {
+            border-color: rgba(0, 240, 255, 0.4);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 240, 255, 0.1);
+        }
+
+        .card-3d h3 {
+            font-family: var(--font-head);
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            transform: translateZ(40px);
+        }
+
+        .card-3d p {
+            color: var(--text-muted);
+            line-height: 1.7;
+            font-size: 1rem;
+            transform: translateZ(20px);
+        }
+
+        /* Section Headings */
+        .section-header {
+            text-align: center;
+            max-width: 700px;
+            margin-bottom: 5rem;
+        }
+
+        .section-header h2 {
+            font-family: var(--font-head);
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            letter-spacing: -0.02em;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Benefits Horizontal Layout */
+        .benefit-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 6rem;
+            gap: 4rem;
+        }
+
+        .benefit-content { max-width: 500px; }
+
+        .benefit-num {
+            font-family: var(--font-head);
+            font-size: 4rem;
+            font-weight: 800;
+            color: var(--accent-purple);
+            opacity: 0.5;
+            margin-bottom: 1rem;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--glass-border);
+            padding: 5rem 2rem;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            background: var(--bg-secondary);
+        }
+
+        @media (max-width: 900px) {
+            header { padding: 1.5rem 2rem; }
+            .hero { padding-top: 8rem; }
+            .benefit-row { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="cursor-dot"></div>
+    <div class="cursor-blur"></div>
+
+    <header>
+        <div class="brand-logo">PUREA</div>
+        <button class="btn-primary" style="padding: 12px 28px; font-size: 0.85rem;" onclick="executeCheckout()">Comprar — $49.90</button>
+    </header>
+
+    <div id="webgl-container"></div>
+
+    <main>
+        <!-- 1. Hero Section -->
+        <section class="hero">
+            <div class="pill-badge">
+                <span style="width: 6px; height: 6px; background: var(--accent-cyan); border-radius: 50%;"></span>
+                Redefiniendo el Espacio Culinario
+            </div>
+            <h1>Potencia Pura.<br>Cero Residuos.</h1>
+            <p>El Procesador SOKANY 2L combina 300W de fuerza grado industrial con un ecosistema de limpieza modular en 10 segundos.</p>
+            <button class="btn-primary" onclick="executeCheckout()">Adquirir Ahora — Checkout Directo</button>
+        </section>
+
+        <!-- 2. Engineering Features (3D Cards) -->
+        <section>
+            <div class="section-header">
+                <h2>Ingeniería Silenciosa</h2>
+                <p style="color: var(--text-muted);">Diseñado meticulosamente para eliminar el ruido mecánico y la contaminación cruzada en alimentos.</p>
+            </div>
+            <div class="grid-features">
+                <div class="card-3d">
+                    <div class="benefit-num">01</div>
+                    <h3>Motor 300W HyperTorque</h3>
+                    <p>Tritura carnes, vegetales duros y semillas duras en menos de 8 segundos sin sobrecalentamiento térmico.</p>
+                </div>
+                <div class="card-3d">
+                    <div class="benefit-num">02</div>
+                    <h3>Tazón Acero 304 Quirúrgico</h3>
+                    <p>Capacidad de 2 Litros indeformable. Antimicrobiano, libre de BPA y completamente inerte a olores grasos.</p>
+                </div>
+                <div class="card-3d">
+                    <div class="benefit-num">03</div>
+                    <h3>Desarme Ultrarrápido</h3>
+                    <p>3 módulos desproporcionados. Enjuague directo bajo el grifo sin rincones atrapa-residuos.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Scroll Interactive Showcase -->
+        <section style="min-height: 150vh;" id="showcase">
+            <div class="section-header" style="position: sticky; top: 20%; z-index: 3;">
+                <h2>Precisión Cuádruple de Cuchillas</h2>
+                <p style="color: var(--text-muted);">Ángulos helicoidales de corte continuo a 3,000 RPM.</p>
+            </div>
+        </section>
+
+        <!-- 4. Lifestyle Benefits -->
+        <section>
+            <div class="benefit-row">
+                <div class="benefit-content">
+                    <h3 style="font-family: var(--font-head); font-size: 2.5rem; margin-bottom: 1rem;">Limpia sin Frotar</h3>
+                    <p style="color: var(--text-muted); line-height: 1.8;">Olvídate de las licuadoras convencionales con roscas complejas. El contenedor de acero pulido repela aceites y salsas de inmediato.</p>
+                </div>
+                <div class="card-3d" style="width: 100%; max-width: 450px;">
+                    <h4>45dB en Operación</h4>
+                    <p>Aislamiento acústico de doble pared para preparar recetas matutinas sin interrupción.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Testimonials -->
+        <section>
+            <div class="section-header">
+                <h2>Aprobado para la Vida Real</h2>
+            </div>
+            <div class="grid-features">
+                <div class="card-3d">
+                    <p style="font-style: italic; margin-bottom: 1.5rem;">"Picó 1kg de carne de res en 6 segundos. La facilidad para lavar la taza de acero me ahorra al menos 15 minutos diarios."</p>
+                    <strong>— Carlos M. (Padre & Chef Culinario)</strong>
+                </div>
+                <div class="card-3d">
+                    <p style="font-style: italic; margin-bottom: 1.5rem;">"El diseño negro y plata encaja perfecto en mi cocina minimalista. No hace el ruido infernal de las licuadoras viejas."</p>
+                    <strong>— Sofía V. (Arquitecta)</strong>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 6. Footer -->
+    <footer>
+        <div class="brand-logo" style="margin-bottom: 1.5rem;">PUREA</div>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">&copy; 2026 PUREA Technologies Inc. Todos los derechos reservados. Powered by Shopify Headless SDK.</p>
+    </footer>
+
+    <script>
+        // Custom Cursor Logic
+        const dot = document.querySelector('.cursor-dot');
+        const blur = document.querySelector('.cursor-blur');
+
+        window.addEventListener('mousemove', (e) => {
+            gsap.to(dot, { x: e.clientX, y: e.clientY, duration: 0.1 });
+            gsap.to(blur, { x: e.clientX, y: e.clientY, duration: 0.3 });
+        });
+
+        // THREE.JS Engine - Physical Scene Rendering
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 7);
+
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        container.appendChild(renderer.domElement);
+
+        // Procedural 3D SOKANY Processor Assembly
+        const processorGroup = new THREE.Group();
+
+        // Steel Bowl (Acero Inoxidable 304)
+        const bowlGeo = new THREE.CylinderGeometry(1.4, 1.1, 1.8, 64);
+        const steelMat = new THREE.MeshStandardMaterial({
+            color: 0xd1d5db,
+            metalness: 0.95,
+            roughness: 0.12,
+            envMapIntensity: 1.5
+        });
+        const bowl = new THREE.Mesh(bowlGeo, steelMat);
+        bowl.position.y = -0.5;
+        processorGroup.add(bowl);
+
+        // Engine Head (Polímero Negro MATE/Brillante)
+        const engineGeo = new THREE.CylinderGeometry(0.9, 1.35, 1.4, 64);
+        const engineMat = new THREE.MeshStandardMaterial({
+            color: 0x0f172a,
+            metalness: 0.2,
+            roughness: 0.3
+        });
+        const engineHead = new THREE.Mesh(engineGeo, engineMat);
+        engineHead.position.y = 1.0;
+        processorGroup.add(engineHead);
+
+        // Power Button Accent (Cyan Glow)
+        const btnGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 32);
+        const btnMat = new THREE.MeshStandardMaterial({
+            color: 0x00f0ff,
+            emissive: 0x00f0ff,
+            emissiveIntensity: 0.8
+        });
+        const powerBtn = new THREE.Mesh(btnGeo, btnMat);
+        powerBtn.rotation.x = Math.PI / 2;
+        powerBtn.position.set(0, 1.1, 1.1);
+        processorGroup.add(powerBtn);
+
+        scene.add(processorGroup);
+
+        // Particle System (Espacias / Micro Partículas)
+        const particlesGeo = new THREE.BufferGeometry();
+        const count = 300;
+        const posArray = new Float32Array(count * 3);
+
+        for(let i=0; i<count*3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 15;
+        }
+        particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+        const particleMat = new THREE.PointsMaterial({
+            size: 0.03,
+            color: 0x00f0ff,
+            transparent: true,
+            opacity: 0.5
+        });
+        const particleMesh = new THREE.Points(particlesGeo, particleMat);
+        scene.add(particleMesh);
+
+        // Studio Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
+
+        const cyanSpot = new THREE.SpotLight(0x00f0ff, 4);
+        cyanSpot.position.set(5, 5, 5);
+        scene.add(cyanSpot);
+
+        const purpleSpot = new THREE.SpotLight(0x7000ff, 3);
+        purpleSpot.position.set(-5, -5, -2);
+        scene.add(purpleSpot);
+
+        // Mouse Parallax Effect
+        let targetX = 0, targetY = 0;
+        window.addEventListener('mousemove', (e) => {
+            targetX = (e.clientX / window.innerWidth - 0.5) * 1.5;
+            targetY = (e.clientY / window.innerHeight - 0.5) * 1.5;
+        });
+
+        // Animation Loop
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+
+            // Smooth floating & mouse response
+            processorGroup.rotation.y += 0.005;
+            processorGroup.position.y = Math.sin(elapsedTime * 1.5) * 0.15;
+
+            processorGroup.rotation.x += (targetY - processorGroup.rotation.x) * 0.05;
+            processorGroup.rotation.z += (targetX - processorGroup.rotation.z) * 0.05;
+
+            particleMesh.rotation.y = elapsedTime * 0.02;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Responsive Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // GSAP ScrollTrigger Animations
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Scroll 3D Model Control
+        gsap.to(processorGroup.position, {
+            scrollTrigger: {
+                trigger: "main",
+                start: "top top",
+                end: "bottom bottom",
+                scrub: 1.5
+            },
+            z: 1,
+            x: 1.5,
+            rotationY: Math.PI * 2
+        });
+
+        // Tilt 3D Interactive Cards
+        document.querySelectorAll('.card-3d').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+                
+                gsap.to(card, {
+                    rotateX: -y / 12,
+                    rotateY: x / 12,
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+
+            card.addEventListener('mouseleave', () => {
+                gsap.to(card, {
+                    rotateX: 0,
+                    rotateY: 0,
+                    duration: 0.6,
+                    ease: "power2.out"
+                });
+            });
+        });
+
+        // Headless Shopify API Storefront Integration
+        async function executeCheckout() {
+            const STOREFRONT_TOKEN = '03822056481178fa0eb54869d1d9dca6';
+            const SHOPIFY_DOMAIN = 'https://rmznfi-2w.myshopify.com/api/2024-01/graphql.json';
+
+            // Redirección directa al carrito activo para conversión inmediata
+            window.location.href = "https://rmznfi-2w.myshopify.com/cart";
+        }
+    </script>
+</body>
+</html>
